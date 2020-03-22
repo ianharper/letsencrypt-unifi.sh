@@ -12,6 +12,7 @@
 # 02/04/2018: LE disabled tls-sni-01, so switch to just tls-sni, as certbot 0.22 and later automatically fall back to http/80 for auth
 # 05/29/2018: Integrate patch from Donald Webster <fryfrog[at]gmail.com> to cleanup and improve tests
 # 09/26/2018: Change from TLS to HTTP authenticator
+# 03/22/2020: Enabled adding cert without downloading from LE. Added sudo to lines that require root.
 
 # Location of LetsEncrypt binary we use.  Leave unset if you want to let it find automatically
 #LEBINARY="/usr/src/letsencrypt/certbot-auto"
@@ -59,7 +60,7 @@ NEWCERT="--renew-by-default certonly"
 RENEWCERT="-n renew"
 
 # Check for required binaries
-if [[ ! -x ${LEBINARY} ]]; then
+if [[ ! -x ${LEBINARY} ]] && [[ ${onlyinsert} != "yes" ]]; then
   echo "Error: LetsEncrypt binary not found in ${LEBINARY} !"
   echo "You'll need to do one of the following:"
   echo "1) Change LEBINARY variable in this script"
@@ -152,14 +153,14 @@ _EOF
           -CAfile "${CATEMPFILE}" -caname root
 
   echo "Stopping Unifi controller..."
-  service unifi stop
+  sudo service unifi stop
 
   echo "Removing existing certificate from Unifi protected keystore..."
-  keytool -delete -alias unifi -keystore /usr/lib/unifi/data/keystore \
+  sudo keytool -delete -alias unifi -keystore /usr/lib/unifi/data/keystore \
           -deststorepass aircontrolenterprise
 
   echo "Inserting certificate into Unifi keystore..."
-  keytool -trustcacerts -importkeystore \
+  sudo keytool -trustcacerts -importkeystore \
           -deststorepass aircontrolenterprise \
           -destkeypass aircontrolenterprise \
           -destkeystore /usr/lib/unifi/data/keystore \
@@ -169,7 +170,7 @@ _EOF
   rm -f "${TEMPFILE}" "${CATEMPFILE}"
 
   echo "Starting Unifi controller..."
-  service unifi start
+  sudo service unifi start
 
   echo "Done!"
 fi
